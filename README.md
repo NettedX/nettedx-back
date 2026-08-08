@@ -14,6 +14,10 @@ The frontend of NettedX.
 
 - Python >= 3.12
 
+## 开发指南
+
+请参见 [开发指南](https://github.com/NettedX/.github/blob/main/docs/DEVELOPMENT_GUIDELINES.md)
+
 ## 快速开始
 
 > 对于第一次使用，请先安装 [uv](https://github.com/astral-sh/uv)
@@ -30,7 +34,7 @@ The frontend of NettedX.
 	uv run dev
   ```
 
-	或者
+  或者
 
   ```sh
 	uv run uvicorn app.main:app --reload
@@ -39,7 +43,7 @@ The frontend of NettedX.
 3. 打开内置文档
 
   与你的代码实时同步，正式的文档定义请以 Apifox 为准。
-  
+
 	http://127.0.0.1:8000/docs
 
 ## 测试与检查
