@@ -1,0 +1,58 @@
+name: Check Dependencies
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+    paths:
+      - ".github/workflows/Check-dependencies.yml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "uv.lock"
+
+permissions: write-all
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install the project
+        id: install_dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Comment PR to notify
+        if: always()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const result = '${{steps.install_dependencies.outcome}}';
+            let body = '';
+            if (result === 'success') {
+              body = `🎉🎉🎉 Dependencies check passed, and all of them can be installed successfully!
+                
+              You can go to [Actions](https://github.com/nettedx/nettedx-back/actions) to check the workflow status. ✨`
+            } else {
+              body = `🚨🚨🚨 Some dependency installations have failed!
+
+              Please go to [Actions](https://github.com/nettedx/nettedx-back/actions), and check the logs to see what went wrong. 🛠️`
+            }
+            await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
