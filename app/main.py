@@ -5,7 +5,6 @@ from fastapi.exceptions import RequestValidationError
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.config import settings
 from app.schemas.exception import ServiceException
 from app.utils.response import build_error_response
 

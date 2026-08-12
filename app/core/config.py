@@ -16,6 +16,18 @@ class Settings(BaseSettings):
     jwt_access_ttl_seconds: int = 300  # 5分钟
     jwt_refresh_ttl_seconds: int = 604800  # 7天
 
+    siwe_domain: str = "localhost:5173"
+    siwe_uri: str = "http://localhost:5173"
+    siwe_statement: str = "Sign in to NettedX."
+    siwe_allowed_chain_ids: str = "97"
+    siwe_nonce_ttl_seconds: int = 300
+
+    @property
+    def allowed_siwe_chain_ids(self) -> set[int]:
+        return {
+            int(item.strip()) for item in self.siwe_allowed_chain_ids.split(",") if item.strip()
+        }
+
     db_host: str = "127.0.0.1"
     db_port: int = 3306
     db_user: str = "nettedx"
