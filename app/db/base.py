@@ -1,0 +1,7 @@
+"""定义所有 SQLAlchemy ORM 模型共用的声明式基类。"""
+
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    """NettedX 数据库模型的声明式基类."""

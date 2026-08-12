@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from sqlalchemy import URL
+
 
 class Settings(BaseSettings):
     app_name: str = "NettedX API"
@@ -13,6 +15,39 @@ class Settings(BaseSettings):
     jwt_algorithm: Literal["HS256"] = "HS256"
     jwt_access_ttl_seconds: int = 300  # 5分钟
     jwt_refresh_ttl_seconds: int = 604800  # 7天
+
+    db_host: str = "127.0.0.1"
+    db_port: int = 3306
+    db_user: str = "nettedx"
+    db_password: str = ""
+    db_name: str = "nettedx"
+    db_echo: bool = False
+
+    # 构造 FastAPI 运行时使用的异步数据库 URL。
+    @property
+    def async_database_url(self) -> str:
+        return URL.create(
+            drivername="mysql+aiomysql",
+            username=self.db_user,
+            password=self.db_password or None,
+            host=self.db_host,
+            port=self.db_port,
+            database=self.db_name,
+            query={"charset": "utf8mb4"},
+        ).render_as_string(hide_password=False)
+
+    # 构造 Alembic 数据库迁移使用的同步数据库 URL。
+    @property
+    def sync_database_url(self) -> str:
+        return URL.create(
+            drivername="mysql+pymysql",
+            username=self.db_user,
+            password=self.db_password or None,
+            host=self.db_host,
+            port=self.db_port,
+            database=self.db_name,
+            query={"charset": "utf8mb4"},
+        ).render_as_string(hide_password=False)
 
     model_config = SettingsConfigDict(
         env_file=".env",
