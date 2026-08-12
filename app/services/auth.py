@@ -2,13 +2,11 @@
 
 import re
 from dataclasses import dataclass
-
-from eth_account import Account
-from eth_account.messages import encode_defunct
-
 from secrets import token_urlsafe
 from time import time
 
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,15 +14,17 @@ from app.core.config import settings
 from app.db.enums import OrganizationStatus, UserStatus
 from app.db.models.organization import Organization
 from app.db.models.siwe_nonce import SiweNonce
-from app.schemas.auth import SiweChallengeData, SiweChallengeRequest, SiweVerifyRequest, UserToken
-from app.schemas.exception import ServiceException
-
 from app.db.models.user import User
-from app.schemas.auth import UserToken
-from app.utils.auth import build_user_tokens
-
 from app.schemas.auth import Organization as OrganizationSchema
-from app.schemas.auth import UserProfile
+from app.schemas.auth import (
+    SiweChallengeData,
+    SiweChallengeRequest,
+    SiweVerifyRequest,
+    UserProfile,
+    UserToken,
+)
+from app.schemas.exception import ServiceException
+from app.utils.auth import build_user_tokens
 
 
 def _now_unix() -> int:

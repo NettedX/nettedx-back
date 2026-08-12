@@ -1,7 +1,7 @@
 """提供给用户JWT的签发和验证功能。"""
 
-from typing import Any, Literal
 from time import time
+from typing import Any, Literal
 
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError

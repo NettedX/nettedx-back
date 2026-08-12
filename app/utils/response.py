@@ -4,7 +4,7 @@
 """
 
 from time import time
-from typing import TypeVar, Any
+from typing import Any, TypeVar
 
 from fastapi.responses import JSONResponse
 

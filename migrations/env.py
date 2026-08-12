@@ -8,7 +8,6 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import settings
 from app.db.models import Base
 
-
 # Alembic 当前运行使用的配置对象。
 config = context.config
 

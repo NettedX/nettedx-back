@@ -8,12 +8,12 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
-DataT = TypeVar("DataT")  #TypeVar是类型变量，定义一个泛型类型参数，名字叫DataT
+DataT = TypeVar("DataT")  # TypeVar是类型变量，定义一个泛型类型参数，名字叫DataT
 
 
 # Generic[DataT] 表示 data 的类型可以根据接口变化
 class ApiResponse(BaseModel, Generic[DataT]):
-    code: int = Field(..., title="响应码")  #Field(...)表示该字段必填
+    code: int = Field(..., title="响应码")  # Field(...)表示该字段必填
     msg: str = Field(..., title="消息")
     time: int = Field(..., title="时间", description="unix秒级时间戳")
     data: DataT = Field(..., title="业务数据")

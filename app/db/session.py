@@ -1,11 +1,12 @@
 """创建异步数据库引擎、Session 工厂和 FastAPI 依赖。"""
 
 from collections.abc import AsyncIterator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
-
 
 engine = create_async_engine(
     settings.async_database_url,
@@ -24,3 +25,9 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db() -> AsyncIterator[AsyncSession]:
     async with AsyncSessionLocal() as session:
         yield session
+
+
+DbSession = Annotated[
+    AsyncSession,
+    Depends(get_db),
+]
