@@ -6,8 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.auth import SiweChallengeData, SiweChallengeRequest
 from app.schemas.response import ApiResponse
-from app.services.auth import create_siwe_challenge
 from app.utils.response import build_success_response
+
+from app.schemas.auth import (
+    SiweChallengeData,
+    SiweChallengeRequest,
+    SiweVerifyRequest,
+    UserToken,
+)
+from app.services.auth import create_siwe_challenge, verify_siwe_login
+
+from app.api.dependencies.auth import RefreshTokenPayload
+from app.services.auth import create_siwe_challenge, refresh_user_tokens, verify_siwe_login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,4 +28,25 @@ async def request_siwe_nonce(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[SiweChallengeData]:
     data = await create_siwe_challenge(db=db, payload=payload)
+    return build_success_response(data=data)
+
+
+@router.post("/siwe/verify", response_model=ApiResponse[UserToken])
+async def verify_siwe_signature(
+    payload: SiweVerifyRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[UserToken]:
+    data = await verify_siwe_login(db=db, payload=payload)
+    return build_success_response(data=data)
+
+
+@router.get("/refresh", response_model=ApiResponse[UserToken])
+async def refresh_token(
+    token_payload: RefreshTokenPayload,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[UserToken]:
+    data = await refresh_user_tokens(
+        db=db,
+        uid=token_payload["uid"],
+    )
     return build_success_response(data=data)
