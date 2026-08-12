@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.schemas.auth import SiweChallengeData, SiweChallengeRequest
+from app.schemas.auth import SiweChallengeData, SiweChallengeRequest, UserProfile
 from app.schemas.response import ApiResponse
 from app.utils.response import build_success_response
 
@@ -14,10 +14,14 @@ from app.schemas.auth import (
     SiweVerifyRequest,
     UserToken,
 )
-from app.services.auth import create_siwe_challenge, verify_siwe_login
 
-from app.api.dependencies.auth import RefreshTokenPayload
-from app.services.auth import create_siwe_challenge, refresh_user_tokens, verify_siwe_login
+from app.api.dependencies.auth import RefreshTokenPayload, AccessTokenPayload
+from app.services.auth import (
+    create_siwe_challenge,
+    refresh_user_tokens,
+    verify_siwe_login,
+    get_user_profile,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,6 +50,18 @@ async def refresh_token(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[UserToken]:
     data = await refresh_user_tokens(
+        db=db,
+        uid=token_payload["uid"],
+    )
+    return build_success_response(data=data)
+
+
+@router.get("/profile", response_model=ApiResponse[UserProfile])
+async def get_profile(
+    token_payload: AccessTokenPayload,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[UserProfile]:
+    data = await get_user_profile(
         db=db,
         uid=token_payload["uid"],
     )

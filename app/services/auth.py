@@ -23,6 +23,9 @@ from app.db.models.user import User
 from app.schemas.auth import UserToken
 from app.utils.auth import build_user_tokens
 
+from app.schemas.auth import Organization as OrganizationSchema
+from app.schemas.auth import UserProfile
+
 
 def _now_unix() -> int:
     return int(time())
@@ -247,3 +250,38 @@ async def refresh_user_tokens(
         raise ServiceException(status_code=401, detail="organization is disabled")
 
     return build_user_tokens(uid=user.id)
+
+
+async def get_user_profile(
+    db: AsyncSession,
+    uid: int,
+) -> UserProfile:
+    user = await db.scalar(select(User).where(User.id == uid))
+
+    if user is None:
+        raise ServiceException(status_code=401, detail="user not found")
+
+    if user.status != UserStatus.ENABLED:
+        raise ServiceException(status_code=401, detail="user is disabled")
+
+    organization = await db.scalar(
+        select(Organization).where(Organization.id == user.organization_id)
+    )
+
+    if organization is None:
+        raise ServiceException(status_code=401, detail="organization not found")
+
+    if organization.status != OrganizationStatus.ENABLED:
+        raise ServiceException(status_code=401, detail="organization is disabled")
+
+    return UserProfile(
+        id=user.id,
+        display_name=user.display_name,
+        role=user.role,
+        organization=OrganizationSchema(
+            id=organization.id,
+            code=organization.code,
+            name=organization.name,
+            wallet_address=organization.wallet_address,
+        ),
+    )
