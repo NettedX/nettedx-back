@@ -19,7 +19,7 @@ class SiweChallengeRequest(BaseModel):
         ...,
         title="区块链网络ID",
         description="EIP-155 Chain ID",
-        gt=0,  #greater than 表示该值必须大于0
+        gt=0,  # greater than 表示该值必须大于0
     )
 
 
@@ -63,15 +63,15 @@ class Organization(BaseModel):
     id: int = Field(..., title="机构 ID")
     code: str = Field(..., title="机构唯一代码", min_length=1)
     name: str = Field(..., title="机构名称", min_length=1)
+    wallet_address: str = Field(
+        ...,
+        title="机构钱包地址",
+        pattern=ETHEREUM_ADDRESS_PATTERN,
+    )
 
 
 class UserProfile(BaseModel):
     id: int = Field(..., title="用户ID")
     display_name: str = Field(..., title="用户昵称", min_length=1)
-    wallet_address: str = Field(
-        ...,
-        title="用户钱包地址",
-        pattern=ETHEREUM_ADDRESS_PATTERN,
-    )
     role: Literal["operator"] = Field(..., title="用户角色")
     organization: Organization

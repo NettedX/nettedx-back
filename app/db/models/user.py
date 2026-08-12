@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Enum as SqlEnum, ForeignKey, String
+from sqlalchemy import BigInteger, Enum as SqlEnum, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -17,6 +17,13 @@ if TYPE_CHECKING:
 class User(Base):
     __tablename__ = "users"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            name="uq_users_organization_id",
+        ),
+    )
+
     id: Mapped[int] = mapped_column(
         BigInteger,
         primary_key=True,
@@ -27,11 +34,7 @@ class User(Base):
         nullable=False,
         comment="用户显示名称",
     )
-    wallet_address: Mapped[str] = mapped_column(
-        String(42),
-        nullable=False,
-        unique=True,
-    )
+
     role: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
@@ -43,7 +46,6 @@ class User(Base):
         BigInteger,
         ForeignKey("organizations.id", ondelete="RESTRICT"),  # 机构下面还有用户时，不允许误删机构
         nullable=False,
-        index=True,
         comment="用户所属机构ID",
     )
     status: Mapped[UserStatus] = mapped_column(

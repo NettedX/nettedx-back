@@ -33,6 +33,12 @@ class Organization(Base):
         nullable=False,
         comment="机构名称",
     )
+    wallet_address: Mapped[str] = mapped_column(
+        String(42),
+        nullable=False,
+        unique=True,
+        comment="机构授权钱包地址，统一以小写保存",
+    )
     status: Mapped[OrganizationStatus] = mapped_column(
         SqlEnum(
             OrganizationStatus,
