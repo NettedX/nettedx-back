@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "pyjwt>=2.13.0",
     "pymysql>=1.2.0",
+    "python-dotenv>=1.2.2",
     "sqlalchemy[asyncio]>=2.0.51",
     "uvicorn[standard]>=0.52.1",
 ]

@@ -1,16 +1,25 @@
+from pathlib import Path
 from typing import Literal
 
+from dotenv import load_dotenv
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
+
+# 项目根目录，即 nettedx-back。
+BASE_DIR = Path(__file__).resolve().parents[2]
+# 将本地 .env 中的配置加载到系统环境变量。
+# override=False 表示部署服务器设置的环境变量拥有更高优先级。
+load_dotenv(BASE_DIR / ".env", override=False)
 
 
 class Settings(BaseSettings):
     app_name: str = "NettedX API"
     app_env: Literal["dev", "staging", "prod"] = "dev"
     debug: bool = True
-    api_v1_prefix: str = "/api/v1"
+    api_v1_prefix: str = "/v1"
 
-    jwt_secret: str = "change-me"
+    jwt_secret: str = Field(min_length=32)
     jwt_algorithm: Literal["HS256"] = "HS256"
     jwt_access_ttl_seconds: int = 300  # 5分钟
     jwt_refresh_ttl_seconds: int = 604800  # 7天
@@ -61,7 +70,6 @@ class Settings(BaseSettings):
         ).render_as_string(hide_password=False)
 
     model_config = SettingsConfigDict(
-        env_file=".env",
         env_prefix="NETTEDX_",
         extra="ignore",
     )
