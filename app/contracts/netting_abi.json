@@ -1,0 +1,30 @@
+[
+  {
+    "type": "function",
+    "name": "getPublicAnalyticsMetrics",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "totalSettlementAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalTradeCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "liquiditySaved",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "obligationReduction",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
