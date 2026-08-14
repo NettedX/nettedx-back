@@ -30,18 +30,26 @@ class Settings(BaseSettings):
     siwe_allowed_chain_ids: str = "97"
     siwe_nonce_ttl_seconds: int = 300
 
-    @property
-    def allowed_siwe_chain_ids(self) -> set[int]:
-        return {
-            int(item.strip()) for item in self.siwe_allowed_chain_ids.split(",") if item.strip()
-        }
+    # Blockchain
+    blockchain_rpc_url: str = ""  # 后端连接区块链节点的地址
+    netting_contract_address: str = ""  # 部署后的Netting合约地址
+    cash_token_decimals: int = Field(
+        default=6, ge=0
+    )  # 现金代币精度，例如 USDC 通常为 6，用于把链上最小单位换算成首页展示金额
 
+    # 数据库
     db_host: str = "127.0.0.1"
     db_port: int = 3306
     db_user: str = "nettedx"
     db_password: str = ""
     db_name: str = "nettedx"
     db_echo: bool = False
+
+    @property
+    def allowed_siwe_chain_ids(self) -> set[int]:
+        return {
+            int(item.strip()) for item in self.siwe_allowed_chain_ids.split(",") if item.strip()
+        }
 
     # 构造 FastAPI 运行时使用的异步数据库 URL。
     @property

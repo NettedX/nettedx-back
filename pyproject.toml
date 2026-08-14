@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "sqlalchemy[asyncio]>=2.0.51",
     "uvicorn[standard]>=0.52.1",
+    "web3>=7.16.0",
 ]
 
 [dependency-groups]
@@ -32,6 +33,9 @@ package = true
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.setuptools.package-data]
+"app.contracts" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
