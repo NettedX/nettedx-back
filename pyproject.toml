@@ -13,7 +13,7 @@ dependencies = [
     "pyjwt>=2.13.0",
     "pymysql>=1.2.0",
     "python-dotenv>=1.2.2",
-    "sqlalchemy[asyncio]>=2.0.51",
+    "sqlalchemy[asyncio]>=2.0.52",
     "uvicorn[standard]>=0.52.1",
     "web3>=7.16.0",
 ]
