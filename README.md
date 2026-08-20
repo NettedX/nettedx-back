@@ -23,7 +23,7 @@ Please refer to the [Development Guidelines](https://github.com/NettedX/.github/
 
 > For users and production environments.
 
-Make sure you have [Docker](https://www.docker.com/products/docker-desktop/) and Docker Compose installed on your device.
+Make sure you have [Docker](https://www.docker.com/products/docker-desktop/)  installed on your device.
 
 There are two ways to run the application using Docker:
 
@@ -45,7 +45,7 @@ There are two ways to run the application using Docker:
 
 ## Quick Start 
 
-> For Developers Only.
+> For Developers.
 
 1. Clone the repository
 
