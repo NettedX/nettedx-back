@@ -2,7 +2,8 @@
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     ".env": ".env*",
-    "pyproject.toml": ".python-version, uv.lock, .gitignore"
+    "pyproject.toml": ".python-version, uv.lock, .gitignore, alembic.ini",
+    "Dockerfile": "docker-compose.yml, docker-compose.*.yml, .dockerignore"
   },
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit"

@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: nettedx-back
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "${NETTEDX_UVICORN_PORT:-8000}:8000"
+
+    command:
+      - uv
+      - run
+      - --no-sync
+      - uvicorn
+      - app.main:app
+      - --host
+      - "${NETTEDX_UVICORN_HOST:-0.0.0.0}"
+      - --port
+      - "8000"
+      - --reload
