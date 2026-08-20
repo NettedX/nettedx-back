@@ -1,8 +1,8 @@
 # NettedX Backend
 
-The frontend of NettedX.
+NettedX Backend is a backend service built with FastAPI, designed to provide a robust and efficient API for NettedX. This project is structured to facilitate easy development, testing, and deployment.
 
-## 技术栈
+## Technical Stack
 
 - FastAPI
 - Uvicorn
@@ -10,62 +10,99 @@ The frontend of NettedX.
 - Pytest + HTTPX
 - Ruff
 
-## 环境要求
+## Requirements
 
 - Python >= 3.12
+- [uv](https://github.com/astral-sh/uv)
 
-## 开发指南
+## Development Guidelines
 
-请参见 [开发指南](https://github.com/NettedX/.github/blob/main/docs/DEVELOPMENT_GUIDELINES.md)
+Please refer to the [Development Guidelines](https://github.com/NettedX/.github/blob/main/docs/DEVELOPMENT_GUIDELINES.md)
 
-## 快速开始
+## Running with Docker
 
-> 对于第一次使用，请先安装 [uv](https://github.com/astral-sh/uv)
+> For users and production environments.
 
-1. 安装依赖
+Make sure you have [Docker](https://www.docker.com/products/docker-desktop/)  installed on your device.
+
+There are two ways to run the application using Docker:
+
+1. With the source code:
+
+  Clone the repository and run the following command in the project root directory:
+
+  ```sh
+  docker-compose up --build
+  ```
+
+2. With released Docker image:
+
+  Pull the latest released Docker image from [ghcr](https://github.com/NettedX/nettedx-back/pkgs/container/nettedx-back) and run it:
+
+   ```sh
+   docker run -p 8000:8000 ghcr.io/nettedx/nettedx-back:latest
+   ```
+
+## Quick Start 
+
+> For Developers.
+
+1. Clone the repository
+
+  ```sh
+  git clone https://github.com/NettedX/nettedx-back.git
+  ```
+
+2. Install dependencies
 
   ```sh
 	uv sync
   ```
 
-2. 本地开发运行
+2. Start the development server
 
   ```sh
 	uv run dev
   ```
 
-  或者
+  or
 
   ```sh
 	uv run uvicorn app.main:app --reload
   ```
 
-3. 打开内置文档
+3. Open the built-in documentation
 
-  与你的代码实时同步，正式的文档定义请以 Apifox 为准。
+  Synchronized with your code in real-time, please refer to Apifox for the official documentation.
 
 	http://127.0.0.1:8000/docs
 
-## 测试与检查
+## Available Commands
 
-- 运行测试
+- Run tests
 
   ```sh
 	uv run pytest
   ```
 
-- 代码检查
+- Run linter
 
   ```sh
 	uv run ruff check
   ```
 
-- 代码格式化
+- Run formatter
 
   ```sh
   uv run ruff format
   ```
 
-## 环境变量
+## Environment Variables
 
-可复制 .env.example 为 .env 并按需修改。
+All environment variables are managed using dotenv. Please refer to the `.env.example` file for a list of required environment variables.
+
+Copy the `.env.example` file to `.env` and change the values as needed.
+
+```sh
+cp .env.example .env
+```

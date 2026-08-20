@@ -5,17 +5,38 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - main
-    paths:
-      - ".github/workflows/Check-dependencies.yml"
-      - ".python-version"
-      - "pyproject.toml"
-      - "uv.lock"
 
 permissions: write-all
 
 jobs:
-  check-dependencies:
+  check-changes:
     runs-on: ubuntu-latest
+    outputs:
+      dependencies-changed: ${{ steps.filter.outputs.dependencies }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dependencies:
+              - ".github/workflows/Check-dependencies.yml"
+              - ".python-version"
+              - "pyproject.toml"
+              - "uv.lock"
+
+  check-dependencies:
+    needs: check-changes
+    if: needs.check-changes.outputs.dependencies-changed == 'true'
+
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -25,7 +46,7 @@ jobs:
         with:
           enable-cache: true
 
-      - name: "Set up Python"
+      - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version-file: ".python-version"
@@ -39,20 +60,47 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const result = '${{steps.install_dependencies.outcome}}';
+            const result = '${{ steps.install_dependencies.outcome }}';
+
             let body = '';
+
             if (result === 'success') {
               body = `🎉🎉🎉 Dependencies check passed, and all of them can be installed successfully!
-                
-              You can go to [Actions](https://github.com/nettedx/nettedx-back/actions) to check the workflow status. ✨`
+
+            You can go to [Actions](https://github.com/nettedx/nettedx-back/actions) to check the workflow status. ✨`;
             } else {
               body = `🚨🚨🚨 Some dependency installations have failed!
 
-              Please go to [Actions](https://github.com/nettedx/nettedx-back/actions), and check the logs to see what went wrong. 🛠️`
+            Please go to [Actions](https://github.com/nettedx/nettedx-back/actions), and check the logs to see what went wrong. 🛠️`;
             }
+
             await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: body
-              });
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  check-dependencies-gate:
+    if: always()
+    needs:
+      - check-changes
+      - check-dependencies
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check dependency result
+        run: |
+          dependencies_changed="${{ needs.check-changes.outputs.dependencies-changed }}"
+          dependency_result="${{ needs.check-dependencies.result }}"
+
+          echo "Dependencies changed: $dependencies_changed"
+          echo "Dependency check result: $dependency_result"
+
+          if [ "$dependencies_changed" = "true" ] && [ "$dependency_result" != "success" ]; then
+            echo "Dependency check was required but did not pass."
+            exit 1
+          fi
+
+          echo "Dependency check passed or was not required."
