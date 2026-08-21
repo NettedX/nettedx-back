@@ -9,23 +9,27 @@ class PublicAnalyticsData(BaseModel):
         ge=0,
         title="总清算量",
         description="现金代币完整单位的整数金额",
+        serialization_alias="totalSettlementAmount",
     )
     total_trade_count: int = Field(
         ...,
         ge=0,
         title="交易总笔数",
         description="当前结算窗口内提交的原始交易数量",
+        serialization_alias="totalTradeCount",
     )
     liquidity_saved: int = Field(
         ...,
         ge=0,
         title="节省流动性",
         description="现金代币完整单位的整数金额",
+        serialization_alias="liquiditySaved",
     )
-    obligation_reduction: int = Field(
+    obligation_reduced: int = Field(
         ...,
         ge=0,
         le=100,
         title="义务减少比例",
         description="0至100之间的整数百分比",
+        serialization_alias="obligationReduced",
     )
