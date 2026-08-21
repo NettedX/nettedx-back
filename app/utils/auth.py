@@ -21,7 +21,7 @@ def _build_token(
 ) -> str:
     now = int(time())
     payload = {
-        "sub": str(uid),
+        # "sub": str(uid),
         "uid": uid,
         "typ": token_type,
         "iat": now,
@@ -65,7 +65,7 @@ def decode_user_token(
             algorithms=[settings.jwt_algorithm],
             options={
                 "require": [
-                    "sub",
+                    # "sub",
                     "uid",
                     "typ",
                     "iat",
