@@ -40,5 +40,5 @@ async def get_public_analytics() -> PublicAnalyticsData:
         total_settlement_amount=_to_whole_cash_units(raw_metrics.total_settlement_amount),
         total_trade_count=raw_metrics.total_trade_count,
         liquidity_saved=_to_whole_cash_units(raw_metrics.liquidity_saved),
-        obligation_reduction=raw_metrics.obligation_reduction,
+        obligation_reduced=raw_metrics.obligation_reduction,
     )
