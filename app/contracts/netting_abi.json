@@ -1,6 +1,114 @@
 [
   {
     "type": "function",
+    "name": "getBankLiquidityShortfalls",
+    "inputs": [
+      {
+        "name": "bank",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "shortfalls",
+        "type": "tuple[]",
+        "internalType": "struct Types.LiquidityShortfall[]",
+        "components": [
+          {
+            "name": "asset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "requiredAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "availableBalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "borrowAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBankNetPositions",
+    "inputs": [
+      {
+        "name": "bank",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Types.BankNetPosition[]",
+        "components": [
+          {
+            "name": "asset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "payableAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivableAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBankSettlementAssetRequirements",
+    "inputs": [
+      {
+        "name": "bank",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "requirements",
+        "type": "tuple[]",
+        "internalType": "struct Types.SettlementAssetRequirement[]",
+        "components": [
+          {
+            "name": "asset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "requiredAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getPublicAnalyticsMetrics",
     "inputs": [],
     "outputs": [
@@ -23,6 +131,36 @@
         "name": "obligationReduction",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSettlementWindowForecast",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "forecast",
+        "type": "tuple",
+        "internalType": "struct Types.SettlementWindowForecast",
+        "components": [
+          {
+            "name": "windowId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "settlementBlock",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "blocksRemaining",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "stateMutability": "view"

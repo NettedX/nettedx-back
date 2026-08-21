@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     debug: bool = True
     api_v1_prefix: str = "/v1"
 
-    jwt_secret: str = Field(min_length=32)
-    jwt_algorithm: Literal["HS256"] = "HS256"
+    jwt_secret: str =  ""
+    jwt_algorithm: str = "HS256"
     jwt_access_ttl_seconds: int = 300  # 5分钟
     jwt_refresh_ttl_seconds: int = 604800  # 7天
 
@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # Blockchain
     blockchain_rpc_url: str = ""  # 后端连接区块链节点的地址
     netting_contract_address: str = ""  # 部署后的Netting合约地址
+    mock_usdc_contract_address: str = ""
+    mock_bond_contract_address: str = ""
+    settlement_contract_address: str = ""
+    liquidity_buffer_contract_address: str = ""
     cash_token_decimals: int = Field(
         default=6, ge=0
     )  # 现金代币精度，例如 USDC 通常为 6，用于把链上最小单位换算成首页展示金额
