@@ -36,8 +36,9 @@ def build_error_response(
     status_code: int,  # HTTP状态码
     data: dict[str, Any] | list[Any] | None = None,
 ) -> JSONResponse:
+    response_data = {} if data is None else data
     body = build_success_response(
-        data=data,
+        data=response_data,
         msg=msg,
         code=code,
     )
