@@ -9,6 +9,9 @@ HEX_SIGNATURE_PATTERN = r"^0x[a-fA-F0-9]+$"
 
 
 class SiweChallengeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
     wallet_address: str = Field(
         ...,
         title="钱包地址",
@@ -83,6 +86,9 @@ class Organization(BaseModel):
 
 
 class UserProfile(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
     id: int = Field(..., title="用户ID")
     display_name: str = Field(
         ...,
