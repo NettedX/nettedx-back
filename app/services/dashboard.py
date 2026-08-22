@@ -33,9 +33,7 @@ async def _require_current_organization(
 ) -> Organization:
     """取得当前用户所属的可用银行机构。"""
 
-    user = await db.scalar(
-        select(User).where(User.id == uid)
-    )
+    user = await db.scalar(select(User).where(User.id == uid))
 
     if user is None:
         raise ServiceException(
@@ -50,9 +48,7 @@ async def _require_current_organization(
         )
 
     organization = await db.scalar(
-        select(Organization).where(
-            Organization.id == user.organization_id
-        )
+        select(Organization).where(Organization.id == user.organization_id)
     )
 
     if organization is None:
@@ -92,9 +88,7 @@ async def get_settlement_window_forecast(
 
     await _require_current_organization(db=db, uid=uid)
 
-    raw_forecast = await _read_blockchain_result(
-        fetch_settlement_window_forecast()
-    )
+    raw_forecast = await _read_blockchain_result(fetch_settlement_window_forecast())
 
     return SettlementWindowForecastData(
         window_id=raw_forecast.window_id,
@@ -138,9 +132,7 @@ async def get_bank_settlement_asset_requirements(
         uid=uid,
     )
     raw_requirements = await _read_blockchain_result(
-        fetch_bank_settlement_asset_requirements(
-            organization.wallet_address
-        )
+        fetch_bank_settlement_asset_requirements(organization.wallet_address)
     )
 
     return [
@@ -163,9 +155,7 @@ async def get_bank_liquidity_shortfalls(
         uid=uid,
     )
     raw_shortfalls = await _read_blockchain_result(
-        fetch_bank_liquidity_shortfalls(
-            organization.wallet_address
-        )
+        fetch_bank_liquidity_shortfalls(organization.wallet_address)
     )
 
     return [

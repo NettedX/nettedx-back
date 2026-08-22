@@ -47,7 +47,7 @@ async def read_bank_net_positions(
 
 
 @router.get(
-    "/settlement-asset-requirements", 
+    "/settlement-asset-requirements",
     response_model=ApiResponse[list[SettlementAssetRequirementItem]],
 )
 async def read_bank_settlement_asset_requirements(
