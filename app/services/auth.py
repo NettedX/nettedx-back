@@ -59,6 +59,57 @@ def _build_siwe_message(
     )
 
 
+async def _ensure_demo_login_identity(
+    db: AsyncSession,
+    wallet_address: str,
+) -> None:
+    """为首次登录的钱包自动创建演示机构和操作员。"""
+
+    organization = await db.scalar(
+        select(Organization).where(Organization.wallet_address == wallet_address)
+    )
+
+    if organization is None:
+        wallet_suffix = wallet_address[-8:]
+        organization = Organization(
+            code=f"demo-{wallet_address[2:]}",
+            name=f"Demo Bank {wallet_suffix}",
+            wallet_address=wallet_address,
+            status=OrganizationStatus.ENABLED,
+        )
+        db.add(organization)
+        await db.flush()
+
+        db.add(
+            User(
+                display_name=f"Demo Operator {wallet_suffix}",
+                role="operator",
+                organization_id=organization.id,
+                status=UserStatus.ENABLED,
+            )
+        )
+        return
+
+    if organization.status != OrganizationStatus.ENABLED:
+        raise ServiceException(status_code=400, detail="organization is disabled")
+
+    user = await db.scalar(select(User).where(User.organization_id == organization.id))
+
+    if user is None:
+        db.add(
+            User(
+                display_name=f"Demo Operator {wallet_address[-8:]}",
+                role="operator",
+                organization_id=organization.id,
+                status=UserStatus.ENABLED,
+            )
+        )
+        return
+
+    if user.status != UserStatus.ENABLED:
+        raise ServiceException(status_code=400, detail="user is disabled")
+
+
 # 为指定钱包生成 SIWE 登录挑战，保存 nonce 并返回待签名消息。
 async def create_siwe_challenge(
     db: AsyncSession,
@@ -68,15 +119,7 @@ async def create_siwe_challenge(
         raise ServiceException(status_code=400, detail="unsupported chain id")
 
     wallet_address = _normalize_wallet_address(payload.wallet_address)
-    organization = await db.scalar(
-        select(Organization).where(Organization.wallet_address == wallet_address)
-    )
-
-    if organization is None:
-        raise ServiceException(status_code=400, detail="wallet address is not registered")
-
-    if organization.status != OrganizationStatus.ENABLED:
-        raise ServiceException(status_code=400, detail="organization is disabled")
+    await _ensure_demo_login_identity(db=db, wallet_address=wallet_address)
 
     issued_at = _now_unix()
     expires_at = issued_at + settings.siwe_nonce_ttl_seconds
