@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     debug: bool = True
     api_v1_prefix: str = "/v1"
 
+    cors_allowed_origins: str = "http://localhost:5173,https://nettedx.com"
+
     jwt_secret: str =  ""
     jwt_algorithm: str = "HS256"
     jwt_access_ttl_seconds: int = 300  # 5分钟
@@ -27,7 +29,14 @@ class Settings(BaseSettings):
     siwe_domain: str = "localhost:5173"
     siwe_uri: str = "http://localhost:5173"
     siwe_statement: str = "Sign in to NettedX."
-    siwe_allowed_chain_ids: str = "97"
+    @property
+    def allowed_cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
+    siwe_allowed_chain_ids: str = "31337"
     siwe_nonce_ttl_seconds: int = 300
 
     # Blockchain
