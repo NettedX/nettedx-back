@@ -15,6 +15,7 @@ class SiweChallengeRequest(BaseModel):
         description="在浏览器点击钱包连接后获得的Ethereum的钱包地址",
         pattern=ETHEREUM_ADDRESS_PATTERN,
         serialization_alias="walletAddress",
+        validation_alias="walletAddress",
     )
     chain_id: int = Field(
         ...,
@@ -22,6 +23,7 @@ class SiweChallengeRequest(BaseModel):
         description="EIP-155 Chain ID",
         gt=0,  # greater than 表示该值必须大于0
         serialization_alias="chainId",
+        validation_alias="chainId",
     )
 
 
@@ -38,6 +40,7 @@ class SiweChallengeData(BaseModel):
         description="unix秒级时间戳",
         gt=0,
         serialization_alias="expiresAt",  #转换成json，对外输出时使用小驼峰格式名字
+        validation_alias="expiresAt"
     )
 
 
@@ -71,6 +74,7 @@ class Organization(BaseModel):
         title="机构钱包地址",
         pattern=ETHEREUM_ADDRESS_PATTERN,
         serialization_alias="walletAddress",
+        validation_alias="walletAddress",
     )
 
 
@@ -81,6 +85,7 @@ class UserProfile(BaseModel):
         title="用户昵称", 
         min_length=1, 
         serialization_alias="displayName",
+        validation_alias="displayName",
     )
     role: Literal["operator"] = Field(..., title="用户角色")
     organization: Organization
