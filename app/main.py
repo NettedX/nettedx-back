@@ -1,10 +1,12 @@
 """创建并配置FastAPI应用"""
 
 import logging
+from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import Response
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -21,12 +23,33 @@ def create_app() -> FastAPI:
         debug=settings.debug,
     )
     app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+        CORSMiddleware,
+        allow_origins=settings.allowed_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
+
+    # 调试模式会绕过通用500异常处理器，因此在HTTP中间件中保证统一响应结构
+    @app.middleware("http")
+    async def unhandled_exception_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            logger.error(
+                "Unhandled exception: method=%s path=%s",
+                request.method,
+                request.url.path,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+            return build_error_response(
+                msg="internal server error",
+                code=500,
+                status_code=500,
+            )
 
     # 全局HTTP异常处理器 保留原始http状态码，并生成统一错误响应体
     @app.exception_handler(HTTPException)
@@ -109,26 +132,6 @@ def create_app() -> FastAPI:
             code=422,
             status_code=422,
             data=errors,  # 保存错误信息
-        )
-
-    # 500错误处理器
-    @app.exception_handler(Exception)
-    async def generic_exception_handler(
-        request: Request,
-        exc: Exception,
-    ):
-        logger.error(
-            "Unhandled exception: method=%s path=%s",
-            request.method,
-            request.url.path,
-            exc_info=(type(exc), exc, exc.__traceback__),
-        )
-
-        return build_error_response(
-            msg="internal server error",
-            code=500,
-            status_code=500,
-            data={},
         )
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)
