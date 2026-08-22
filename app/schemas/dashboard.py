@@ -52,6 +52,7 @@ class BankNetPositionItem(BaseModel):
         serialization_alias="receivableAmount",
     )
 
+
 class SettlementAssetRequirementItem(BaseModel):
     """当前银行必须准备的一种结算资产。"""
 
@@ -68,6 +69,7 @@ class SettlementAssetRequirementItem(BaseModel):
         description="银行本轮结算必须准备的数量，使用ERC20最小单位的原始整数",
         serialization_alias="requiredAmount",
     )
+
 
 class LiquidityShortfallItem(BaseModel):
     """当前银行对一种结算资产的流动性缺口。"""
@@ -97,8 +99,7 @@ class LiquidityShortfallItem(BaseModel):
         ge=0,
         title="预计借款数量",
         description=(
-            "根据当前余额计算的预计借款需求，"
-            "等于max(required_amount - available_balance, 0)"
+            "根据当前余额计算的预计借款需求，等于max(required_amount - available_balance, 0)"
         ),
         serialization_alias="borrowAmount",
     )

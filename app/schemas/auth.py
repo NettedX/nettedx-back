@@ -2,13 +2,16 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 ETHEREUM_ADDRESS_PATTERN = r"^0x[a-fA-F0-9]{40}$"
 HEX_SIGNATURE_PATTERN = r"^0x[a-fA-F0-9]+$"
 
 
 class SiweChallengeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
     wallet_address: str = Field(
         ...,
         title="钱包地址",
@@ -28,6 +31,7 @@ class SiweChallengeRequest(BaseModel):
 
 
 class SiweChallengeData(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     message: str = Field(
         ...,
         title="SIWE签名消息",
@@ -39,8 +43,8 @@ class SiweChallengeData(BaseModel):
         title="过期时间",
         description="unix秒级时间戳",
         gt=0,
-        serialization_alias="expiresAt",  #转换成json，对外输出时使用小驼峰格式名字
-        validation_alias="expiresAt"
+        serialization_alias="expiresAt",  # 转换成json，对外输出时使用小驼峰格式名字
+        validation_alias="expiresAt",
     )
 
 
@@ -66,6 +70,9 @@ class UserToken(BaseModel):
 
 
 class Organization(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
     id: int = Field(..., title="机构 ID")
     code: str = Field(..., title="机构唯一代码", min_length=1)
     name: str = Field(..., title="机构名称", min_length=1)
@@ -79,11 +86,14 @@ class Organization(BaseModel):
 
 
 class UserProfile(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
     id: int = Field(..., title="用户ID")
     display_name: str = Field(
-        ..., 
-        title="用户昵称", 
-        min_length=1, 
+        ...,
+        title="用户昵称",
+        min_length=1,
         serialization_alias="displayName",
         validation_alias="displayName",
     )

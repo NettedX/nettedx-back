@@ -74,6 +74,7 @@ def _load_netting_abi() -> list[dict[str, Any]]:
 
 NETTING_ABI = _load_netting_abi()
 
+
 async def fetch_public_analytics_metrics() -> RawPublicAnalyticsMetrics:
     """调用 Netting 合约，读取当前窗口的四项首页公开指标。"""
 
@@ -182,9 +183,7 @@ async def _call_dashboard_function(
     except BlockchainClientError:
         raise
     except Exception as exc:
-        raise BlockchainClientError(
-            f"failed to call dashboard function: {function_name}"
-        ) from exc
+        raise BlockchainClientError(f"failed to call dashboard function: {function_name}") from exc
     finally:
         await provider.disconnect()
 
@@ -192,28 +191,18 @@ async def _call_dashboard_function(
 async def fetch_settlement_window_forecast() -> RawSettlementWindowForecast:
     """读取下一结算窗口、目标区块和剩余区块数。"""
 
-    result = await _call_dashboard_function(
-        "getSettlementWindowForecast"
-    )
+    result = await _call_dashboard_function("getSettlementWindowForecast")
 
     if not isinstance(result, (list, tuple)) or len(result) != 3:
-        raise BlockchainClientError(
-            "invalid settlement window forecast result"
-        )
+        raise BlockchainClientError("invalid settlement window forecast result")
 
     try:
-        window_id, settlement_block, blocks_remaining = (
-            int(value) for value in result
-        )
+        window_id, settlement_block, blocks_remaining = (int(value) for value in result)
     except (TypeError, ValueError) as exc:
-        raise BlockchainClientError(
-            "invalid settlement window forecast result"
-        ) from exc
+        raise BlockchainClientError("invalid settlement window forecast result") from exc
 
     if min(window_id, settlement_block, blocks_remaining) < 0:
-        raise BlockchainClientError(
-            "invalid settlement window forecast result"
-        )
+        raise BlockchainClientError("invalid settlement window forecast result")
 
     return RawSettlementWindowForecast(
         window_id=window_id,
@@ -268,17 +257,13 @@ async def fetch_bank_net_positions(
     )
 
     if not isinstance(result, (list, tuple)):
-        raise BlockchainClientError(
-            "invalid bank net positions result"
-        )
+        raise BlockchainClientError("invalid bank net positions result")
 
     positions: list[RawBankNetPosition] = []
 
     for item in result:
         if not isinstance(item, (list, tuple)) or len(item) != 3:
-            raise BlockchainClientError(
-                "invalid bank net position item"
-            )
+            raise BlockchainClientError("invalid bank net position item")
 
         asset = _normalize_dashboard_address(
             item[0],
@@ -294,9 +279,7 @@ async def fetch_bank_net_positions(
         )
 
         if payable_amount > 0 and receivable_amount > 0:
-            raise BlockchainClientError(
-                "invalid simultaneous payable and receivable amounts"
-            )
+            raise BlockchainClientError("invalid simultaneous payable and receivable amounts")
 
         positions.append(
             RawBankNetPosition(
@@ -324,17 +307,13 @@ async def fetch_bank_settlement_asset_requirements(
     )
 
     if not isinstance(result, (list, tuple)):
-        raise BlockchainClientError(
-            "invalid settlement asset requirements result"
-        )
+        raise BlockchainClientError("invalid settlement asset requirements result")
 
     requirements: list[RawSettlementAssetRequirement] = []
 
     for item in result:
         if not isinstance(item, (list, tuple)) or len(item) != 2:
-            raise BlockchainClientError(
-                "invalid settlement asset requirement item"
-            )
+            raise BlockchainClientError("invalid settlement asset requirement item")
 
         asset = _normalize_dashboard_address(
             item[0],
@@ -370,17 +349,13 @@ async def fetch_bank_liquidity_shortfalls(
     )
 
     if not isinstance(result, (list, tuple)):
-        raise BlockchainClientError(
-            "invalid bank liquidity shortfalls result"
-        )
+        raise BlockchainClientError("invalid bank liquidity shortfalls result")
 
     shortfalls: list[RawLiquidityShortfall] = []
 
     for item in result:
         if not isinstance(item, (list, tuple)) or len(item) != 4:
-            raise BlockchainClientError(
-                "invalid bank liquidity shortfall item"
-            )
+            raise BlockchainClientError("invalid bank liquidity shortfall item")
 
         asset = _normalize_dashboard_address(
             item[0],

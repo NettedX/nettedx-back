@@ -22,13 +22,6 @@ def create_app() -> FastAPI:
         version="0.1.0",
         debug=settings.debug,
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.allowed_cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
     # 调试模式会绕过通用500异常处理器，因此在HTTP中间件中保证统一响应结构
     @app.middleware("http")
@@ -135,6 +128,17 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+    # CORS中间件配置，允许跨域请求
+    # 请务必放在最后，以确保所有路由都能正确处理CORS请求
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     return app
 
 
