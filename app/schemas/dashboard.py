@@ -1,6 +1,6 @@
-"""定义登录后银行 Dashboard 四个只读接口的数据模型。"""
+"""定义登录后银行 Dashboard 只读接口的数据模型。"""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.auth import ETHEREUM_ADDRESS_PATTERN
 
@@ -102,4 +102,68 @@ class LiquidityShortfallItem(BaseModel):
             "根据当前余额计算的预计借款需求，等于max(required_amount - available_balance, 0)"
         ),
         serialization_alias="borrowAmount",
+    )
+
+
+class AssetTypeObject(BaseModel):
+    """Dashboard 展示的一种 ERC20 资产。"""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    address: str = Field(..., pattern=ETHEREUM_ADDRESS_PATTERN, title="地址")
+    name: str = Field(..., min_length=1, title="资产名称")
+    symbol: str = Field(..., min_length=1, title="资产单位")
+    decimals: int = Field(..., ge=0, le=255, title="小数点")
+    chain_id: int = Field(
+        ...,
+        gt=0,
+        title="链id",
+        serialization_alias="chainId",
+    )
+
+
+class AssetAmountObject(BaseModel):
+    """一种 ERC20 资产及其最小单位整数数量。"""
+
+    asset: AssetTypeObject
+    amount: int = Field(..., title="数量", description="ERC20最小单位整数")
+
+
+class DashboardOverviewData(BaseModel):
+    """当前登录银行 Dashboard 所需的五项数据。"""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    net_amounts: list[AssetAmountObject] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        title="Netting后净额",
+        serialization_alias="netAmounts",
+    )
+    cumulative_trade_count: int = Field(
+        ...,
+        ge=0,
+        title="累计原始交易次数",
+        serialization_alias="cumulativeTradeCount",
+    )
+    liquidity_buffer_debts: list[AssetAmountObject] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        title="Liquidity Buffer实际欠款",
+        serialization_alias="liquidityBufferDebts",
+    )
+    cumulative_gross_trade_amounts: list[AssetAmountObject] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        title="累计原始交易绝对金额",
+        serialization_alias="cumulativeGrossTradeAmounts",
+    )
+    balances: list[AssetAmountObject] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        title="当前账户余额",
     )
