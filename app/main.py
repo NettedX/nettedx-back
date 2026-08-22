@@ -1,5 +1,7 @@
 """创建并配置FastAPI应用"""
 
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 
@@ -7,6 +9,8 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.schemas.exception import ServiceException
 from app.utils.response import build_error_response
+
+logger = logging.getLogger("uvicorn.error.nettedx")
 
 
 def create_app() -> FastAPI:
@@ -19,10 +23,20 @@ def create_app() -> FastAPI:
     # 全局HTTP异常处理器 保留原始http状态码，并生成统一错误响应体
     @app.exception_handler(HTTPException)
     async def http_exception_handler(
-        _: Request,  # ???
+        request: Request,
         exc: HTTPException,
     ):
         detail = exc.detail if isinstance(exc.detail, str) else "request error"
+
+        logger.warning(
+            "HTTP error: method=%s path=%s code=%s detail=%s",
+            request.method,
+            request.url.path,
+            exc.status_code,
+            detail,
+            exc_info=((type(exc), exc, exc.__traceback__) if settings.debug else None),
+        )
+
         return build_error_response(
             msg=detail,
             code=exc.status_code,
@@ -33,9 +47,28 @@ def create_app() -> FastAPI:
     # 业务异常处理器
     @app.exception_handler(ServiceException)
     async def service_exception_handler(
-        _: Request,
+        request: Request,
         exc: ServiceException,
     ):
+
+        if exc.status_code >= 500:
+            logger.error(
+                "Service error: method=%s path=%s code=%s detail=%s",
+                request.method,
+                request.url.path,
+                exc.status_code,
+                exc.detail,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+        else:
+            logger.warning(
+                "Request rejected: method=%s path=%s code=%s detail=%s",
+                request.method,
+                request.url.path,
+                exc.status_code,
+                exc.detail,
+            )
+
         return build_error_response(
             msg=exc.detail,
             code=exc.status_code,
@@ -73,14 +106,21 @@ def create_app() -> FastAPI:
     # 500错误处理器
     @app.exception_handler(Exception)
     async def generic_exception_handler(
-        _: Request,
+        request: Request,
         exc: Exception,
     ):
+        logger.error(
+            "Unhandled exception: method=%s path=%s",
+            request.method,
+            request.url.path,
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
+
         return build_error_response(
             msg="internal server error",
             code=500,
             status_code=500,
-            data={"detail": str(exc)},
+            data={},
         )
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)
