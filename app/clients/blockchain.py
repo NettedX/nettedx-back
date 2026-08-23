@@ -745,6 +745,43 @@ def _validate_transaction_amount(amount: int, field_name: str) -> int:
     return amount
 
 
+async def _send_trade_transaction(*, web3: AsyncWeb3, function: Any) -> Any:
+    """使用显式高 Gas 上限发送交易，避免跨区块状态变化使估算值失效。"""
+
+    gas_limit = settings.blockchain_trade_gas_limit
+    private_key = settings.blockchain_relayer_private_key.strip()
+    if private_key:
+        try:
+            account = web3.eth.account.from_key(private_key)
+        except Exception as exc:
+            raise BlockchainClientError("invalid relayer private key") from exc
+
+        nonce = await web3.eth.get_transaction_count(account.address, "pending")
+        transaction = await function.build_transaction(
+            {
+                "from": account.address,
+                "nonce": nonce,
+                "chainId": await web3.eth.chain_id,
+                "gas": gas_limit,
+            }
+        )
+        signed = account.sign_transaction(transaction)
+        raw_transaction = getattr(signed, "raw_transaction", None)
+        if raw_transaction is None:
+            raw_transaction = signed.rawTransaction
+        return await web3.eth.send_raw_transaction(raw_transaction)
+
+    accounts = await web3.eth.accounts
+    if not accounts:
+        raise BlockchainClientError("no unlocked relayer account is available")
+    return await function.transact(
+        {
+            "from": accounts[0],
+            "gas": gas_limit,
+        }
+    )
+
+
 async def submit_trade(
     buyer: str,
     seller: str,
@@ -786,31 +823,7 @@ async def submit_trade(
             bond_amount,
         )
 
-        private_key = settings.blockchain_relayer_private_key.strip()
-        if private_key:
-            try:
-                account = web3.eth.account.from_key(private_key)
-            except Exception as exc:
-                raise BlockchainClientError("invalid relayer private key") from exc
-
-            nonce = await web3.eth.get_transaction_count(account.address, "pending")
-            transaction = await function.build_transaction(
-                {
-                    "from": account.address,
-                    "nonce": nonce,
-                    "chainId": await web3.eth.chain_id,
-                }
-            )
-            signed = account.sign_transaction(transaction)
-            raw_transaction = getattr(signed, "raw_transaction", None)
-            if raw_transaction is None:
-                raw_transaction = signed.rawTransaction
-            transaction_hash = await web3.eth.send_raw_transaction(raw_transaction)
-        else:
-            accounts = await web3.eth.accounts
-            if not accounts:
-                raise BlockchainClientError("no unlocked relayer account is available")
-            transaction_hash = await function.transact({"from": accounts[0]})
+        transaction_hash = await _send_trade_transaction(web3=web3, function=function)
 
         receipt = await web3.eth.wait_for_transaction_receipt(
             transaction_hash,
