@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     # Blockchain
     blockchain_rpc_url: str = ""  # 后端连接区块链节点的地址
+    blockchain_relayer_private_key: str = ""  # 可选；为空时开发环境使用节点解锁账户
+    blockchain_transaction_timeout_seconds: int = Field(default=30, gt=0)
     netting_contract_address: str = ""  # 部署后的Netting合约地址
     mock_usdc_contract_address: str = ""
     mock_bond_contract_address: str = ""
@@ -47,6 +49,7 @@ class Settings(BaseSettings):
     cash_token_decimals: int = Field(
         default=6, ge=0
     )  # 现金代币精度，例如 USDC 通常为 6，用于把链上最小单位换算成首页展示金额
+    bond_token_decimals: int = Field(default=0, ge=0)
 
     # 数据库
     db_host: str = "127.0.0.1"

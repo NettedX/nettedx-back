@@ -3,11 +3,13 @@
 from app.db.base import Base
 from app.db.models.organization import Organization
 from app.db.models.siwe_nonce import SiweNonce
+from app.db.models.transaction import Transaction
 from app.db.models.user import User
 
 __all__ = [
     "Base",
     "Organization",
     "SiweNonce",
+    "Transaction",
     "User",
 ]
