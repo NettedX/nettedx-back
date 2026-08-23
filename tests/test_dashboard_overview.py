@@ -31,7 +31,37 @@ class _FakeDb:
         return None
 
 
-def _overview_data() -> DashboardOverviewData:
+class _FakeContractCall:
+    def __init__(self, value: Any) -> None:
+        self.value = value
+
+    async def call(self) -> Any:
+        return self.value
+
+
+class _ChangingWindowFunctions:
+    def __init__(self) -> None:
+        self.window_ids = iter([0, 1, 1, 1])
+        self.positions = iter(
+            [
+                [(USDC_ADDRESS, 500_000_000, 0)],
+                [],
+            ]
+        )
+
+    def currentWindowId(self) -> _FakeContractCall:
+        return _FakeContractCall(next(self.window_ids))
+
+    def getBankNetPositions(self, bank: str) -> _FakeContractCall:
+        assert bank == BANK_ADDRESS
+        return _FakeContractCall(next(self.positions))
+
+
+def _overview_data(
+    *,
+    usdc_net_amount: int = -500_000_000,
+    bond_net_amount: int = 5,
+) -> DashboardOverviewData:
     usdc = AssetTypeObject(
         address=USDC_ADDRESS,
         name="Mock USDC",
@@ -48,8 +78,8 @@ def _overview_data() -> DashboardOverviewData:
     )
     return DashboardOverviewData(
         net_amounts=[
-            AssetAmountObject(asset=usdc, amount=-500_000_000),
-            AssetAmountObject(asset=bond, amount=5),
+            AssetAmountObject(asset=usdc, amount=usdc_net_amount),
+            AssetAmountObject(asset=bond, amount=bond_net_amount),
         ],
         cumulative_trade_count=12,
         liquidity_buffer_debts=[
@@ -68,19 +98,11 @@ def _overview_data() -> DashboardOverviewData:
 
 
 @pytest.mark.anyio
-async def test_dashboard_overview_service_combines_chain_state_and_statistics(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def require_organization(*, db: Any, uid: int) -> Any:
-        assert isinstance(db, _FakeDb)
-        assert uid == 7
-        return SimpleNamespace(wallet_address=BANK_ADDRESS)
-
-    async def chain_state(bank: str) -> RawDashboardChainState:
-        assert bank == BANK_ADDRESS
-        return RawDashboardChainState(
-            chain_id=31337,
-            net_positions=[
+@pytest.mark.parametrize(
+    ("net_positions", "expected_net_amounts"),
+    [
+        (
+            [
                 RawBankNetPosition(
                     asset=USDC_ADDRESS,
                     payable_amount=500_000_000,
@@ -92,6 +114,27 @@ async def test_dashboard_overview_service_combines_chain_state_and_statistics(
                     receivable_amount=5,
                 ),
             ],
+            (-500_000_000, 5),
+        ),
+        ([], (0, 0)),
+    ],
+    ids=["open-window", "settled-window"],
+)
+async def test_dashboard_overview_service_combines_chain_state_and_statistics(
+    monkeypatch: pytest.MonkeyPatch,
+    net_positions: list[RawBankNetPosition],
+    expected_net_amounts: tuple[int, int],
+) -> None:
+    async def require_organization(*, db: Any, uid: int) -> Any:
+        assert isinstance(db, _FakeDb)
+        assert uid == 7
+        return SimpleNamespace(wallet_address=BANK_ADDRESS)
+
+    async def chain_state(bank: str) -> RawDashboardChainState:
+        assert bank == BANK_ADDRESS
+        return RawDashboardChainState(
+            chain_id=31337,
+            net_positions=net_positions,
             assets=[
                 RawDashboardAssetState(
                     address=USDC_ADDRESS,
@@ -139,7 +182,44 @@ async def test_dashboard_overview_service_combines_chain_state_and_statistics(
 
     result = await dashboard_service.get_dashboard_overview(db=_FakeDb(), uid=7)
 
-    assert result.model_dump(by_alias=True) == _overview_data().model_dump(by_alias=True)
+    assert result.model_dump(by_alias=True) == _overview_data(
+        usdc_net_amount=expected_net_amounts[0],
+        bond_net_amount=expected_net_amounts[1],
+    ).model_dump(by_alias=True)
+
+
+@pytest.mark.anyio
+async def test_dashboard_snapshot_reloads_net_amounts_after_settlement_window_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asset_reads = 0
+
+    async def asset_state(**kwargs: Any) -> RawDashboardAssetState:
+        nonlocal asset_reads
+        asset_reads += 1
+        return RawDashboardAssetState(
+            address=kwargs["asset_address"],
+            name="Mock Asset",
+            symbol="MOCK",
+            decimals=0,
+            balance=0,
+            liquidity_buffer_debt=0,
+        )
+
+    monkeypatch.setattr(blockchain_client, "_fetch_dashboard_asset_state", asset_state)
+    netting = SimpleNamespace(functions=_ChangingWindowFunctions())
+
+    positions, assets = await blockchain_client._fetch_consistent_dashboard_snapshot(
+        netting=netting,
+        liquidity_buffer=object(),
+        tokens=[object(), object()],
+        asset_addresses=[USDC_ADDRESS, BOND_ADDRESS],
+        bank=BANK_ADDRESS,
+    )
+
+    assert positions == []
+    assert len(assets) == 2
+    assert asset_reads == 4
 
 
 @pytest.mark.anyio
