@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     mock_bond_contract_address: str = ""
     settlement_contract_address: str = ""
     liquidity_buffer_contract_address: str = ""
+    netting_deployment_block: int = Field(default=0, ge=0)
+    blockchain_event_scan_chunk_size: int = Field(default=2_000, gt=0)
+    blockchain_event_confirmations: int = Field(default=0, ge=0)
     cash_token_decimals: int = Field(
         default=6, ge=0
     )  # 现金代币精度，例如 USDC 通常为 6，用于把链上最小单位换算成首页展示金额
