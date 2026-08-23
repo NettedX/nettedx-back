@@ -143,6 +143,7 @@ def _load_abi(filename: str) -> list[dict[str, Any]]:
 NETTING_ABI = _load_abi("netting_abi.json")
 ERC20_ABI = _load_abi("erc20_abi.json")
 LIQUIDITY_BUFFER_ABI = _load_abi("liquidity_buffer_abi.json")
+DASHBOARD_SNAPSHOT_MAX_ATTEMPTS = 3
 
 
 async def fetch_public_analytics_metrics() -> RawPublicAnalyticsMetrics:
@@ -476,7 +477,7 @@ def _require_blockchain_configuration(*addresses: str) -> tuple[str, list[str]]:
 
 
 async def fetch_dashboard_chain_state(bank: str) -> RawDashboardChainState:
-    """一次连接读取净头寸、USDC/BOND 元数据、余额和实际 Buffer 欠款。"""
+    """读取同一结算窗口的净头寸、资产余额和实际 Buffer 欠款。"""
 
     checksum_bank = _normalize_dashboard_address(bank, "invalid bank wallet address")
     rpc_url, addresses = _require_blockchain_configuration(
@@ -509,26 +510,17 @@ async def fetch_dashboard_chain_state(bank: str) -> RawDashboardChainState:
             web3.eth.contract(address=bond_address, abi=ERC20_ABI),
         ]
 
-        chain_id_result, positions_result = await asyncio.gather(
+        chain_id_result, snapshot = await asyncio.gather(
             web3.eth.chain_id,
-            netting.functions.getBankNetPositions(checksum_bank).call(),
+            _fetch_consistent_dashboard_snapshot(
+                netting=netting,
+                liquidity_buffer=liquidity_buffer,
+                tokens=tokens,
+                asset_addresses=[usdc_address, bond_address],
+                bank=checksum_bank,
+            ),
         )
-
-        asset_results = await asyncio.gather(
-            *(
-                _fetch_dashboard_asset_state(
-                    token=token,
-                    asset_address=asset_address,
-                    liquidity_buffer=liquidity_buffer,
-                    bank=checksum_bank,
-                )
-                for token, asset_address in zip(
-                    tokens,
-                    [usdc_address, bond_address],
-                    strict=True,
-                )
-            )
-        )
+        positions_result, asset_results = snapshot
     except BlockchainClientError:
         raise
     except Exception as exc:
@@ -545,6 +537,48 @@ async def fetch_dashboard_chain_state(bank: str) -> RawDashboardChainState:
         net_positions=_parse_bank_net_positions(positions_result),
         assets=list(asset_results),
     )
+
+
+async def _fetch_consistent_dashboard_snapshot(
+    *,
+    netting: Any,
+    liquidity_buffer: Any,
+    tokens: list[Any],
+    asset_addresses: list[str],
+    bank: str,
+) -> tuple[Any, list[RawDashboardAssetState]]:
+    """窗口切换时重读，避免把上一窗口净额与结算后余额拼成一个响应。"""
+
+    for _ in range(DASHBOARD_SNAPSHOT_MAX_ATTEMPTS):
+        window_before = _parse_dashboard_uint(
+            await netting.functions.currentWindowId().call(),
+            "invalid current window id",
+        )
+        positions_result, *asset_results = await asyncio.gather(
+            netting.functions.getBankNetPositions(bank).call(),
+            *(
+                _fetch_dashboard_asset_state(
+                    token=token,
+                    asset_address=asset_address,
+                    liquidity_buffer=liquidity_buffer,
+                    bank=bank,
+                )
+                for token, asset_address in zip(
+                    tokens,
+                    asset_addresses,
+                    strict=True,
+                )
+            ),
+        )
+        window_after = _parse_dashboard_uint(
+            await netting.functions.currentWindowId().call(),
+            "invalid current window id",
+        )
+
+        if window_before == window_after:
+            return positions_result, asset_results
+
+    raise BlockchainClientError("dashboard settlement window changed during read")
 
 
 async def _fetch_dashboard_asset_state(
