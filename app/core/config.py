@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     blockchain_rpc_url: str = ""  # 后端连接区块链节点的地址
     blockchain_relayer_private_key: str = ""  # 可选；为空时开发环境使用节点解锁账户
     blockchain_transaction_timeout_seconds: int = Field(default=30, gt=0)
+    # submitTrade 的执行成本会在结算窗口切换时上升。使用显式的大额上限，
+    # 避免交易从估算区块进入下一区块后因存储写入成本变化而 Out of Gas。
+    # 未消耗的 Gas 不会收费。
+    blockchain_trade_gas_limit: int = Field(default=5_000_000, ge=250_000)
     netting_contract_address: str = ""  # 部署后的Netting合约地址
     mock_usdc_contract_address: str = ""
     mock_bond_contract_address: str = ""
