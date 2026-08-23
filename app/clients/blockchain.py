@@ -106,6 +106,28 @@ class RawTradeSubmittedEvent:
     bond_amount: int
 
 
+@dataclass(frozen=True)
+class RawSubmittedTrade:
+    """submitTrade 成功回执中的 TradeSubmitted 事件。"""
+
+    chain_id: int
+    window_id: int
+    trade_id: int
+    transaction_hash: str
+    block_number: int
+
+
+@dataclass(frozen=True)
+class RawSettlementOutcome:
+    """某个结算窗口的成功或失败事件。"""
+
+    window_id: int
+    succeeded: bool
+    transaction_hash: str
+    block_number: int
+    reason: str | None
+
+
 def _load_abi(filename: str) -> list[dict[str, Any]]:
     """从应用包中加载后端所需的最小合约 ABI。"""
 
@@ -672,3 +694,190 @@ def _parse_trade_submitted_logs(logs: Any) -> list[RawTradeSubmittedEvent]:
         events.append(event)
 
     return events
+
+
+def _validate_transaction_address(address: str, field_name: str) -> str:
+    address = address.strip()
+    if not Web3.is_address(address):
+        raise BlockchainClientError(f"invalid {field_name} address")
+    return Web3.to_checksum_address(address)
+
+
+def _validate_transaction_amount(amount: int, field_name: str) -> int:
+    if not isinstance(amount, int) or isinstance(amount, bool) or amount <= 0:
+        raise BlockchainClientError(f"invalid {field_name} amount")
+    if amount >= 2**256:
+        raise BlockchainClientError(f"invalid {field_name} amount")
+    return amount
+
+
+async def submit_trade(
+    buyer: str,
+    seller: str,
+    cash_amount: int,
+    bond_amount: int,
+) -> RawSubmittedTrade:
+    """使用配置的 relayer（或开发节点解锁账户）提交一笔已撮合交易。"""
+
+    rpc_url = settings.blockchain_rpc_url.strip()
+    contract_address = settings.netting_contract_address.strip()
+    if not rpc_url or not contract_address:
+        raise BlockchainClientError("blockchain configuration is incomplete")
+
+    checksum_contract = _validate_transaction_address(contract_address, "netting contract")
+    checksum_buyer = _validate_transaction_address(buyer, "buyer")
+    checksum_seller = _validate_transaction_address(seller, "seller")
+    if checksum_buyer == checksum_seller:
+        raise BlockchainClientError("buyer and seller must be different")
+
+    cash_amount = _validate_transaction_amount(cash_amount, "cash")
+    bond_amount = _validate_transaction_amount(bond_amount, "bond")
+
+    provider = AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 10})
+    web3 = AsyncWeb3(provider)
+
+    try:
+        if not await web3.is_connected():
+            raise BlockchainClientError("blockchain rpc is unavailable")
+
+        contract_code = await web3.eth.get_code(checksum_contract)
+        if not contract_code:
+            raise BlockchainClientError("netting contract is not deployed")
+
+        contract = web3.eth.contract(address=checksum_contract, abi=NETTING_ABI)
+        function = contract.functions.submitTrade(
+            checksum_buyer,
+            checksum_seller,
+            cash_amount,
+            bond_amount,
+        )
+
+        private_key = settings.blockchain_relayer_private_key.strip()
+        if private_key:
+            try:
+                account = web3.eth.account.from_key(private_key)
+            except Exception as exc:
+                raise BlockchainClientError("invalid relayer private key") from exc
+
+            nonce = await web3.eth.get_transaction_count(account.address, "pending")
+            transaction = await function.build_transaction(
+                {
+                    "from": account.address,
+                    "nonce": nonce,
+                    "chainId": await web3.eth.chain_id,
+                }
+            )
+            signed = account.sign_transaction(transaction)
+            raw_transaction = getattr(signed, "raw_transaction", None)
+            if raw_transaction is None:
+                raw_transaction = signed.rawTransaction
+            transaction_hash = await web3.eth.send_raw_transaction(raw_transaction)
+        else:
+            accounts = await web3.eth.accounts
+            if not accounts:
+                raise BlockchainClientError("no unlocked relayer account is available")
+            transaction_hash = await function.transact({"from": accounts[0]})
+
+        receipt = await web3.eth.wait_for_transaction_receipt(
+            transaction_hash,
+            timeout=settings.blockchain_transaction_timeout_seconds,
+        )
+        if int(receipt.get("status", 0)) != 1:
+            raise BlockchainClientError("trade submission reverted")
+
+        events = contract.events.TradeSubmitted().process_receipt(receipt)
+        if len(events) != 1:
+            raise BlockchainClientError("missing TradeSubmitted event")
+
+        event = events[0]
+        args = event["args"]
+        return RawSubmittedTrade(
+            chain_id=int(await web3.eth.chain_id),
+            window_id=_parse_dashboard_uint(args["windowId"], "invalid trade window id"),
+            trade_id=_parse_dashboard_uint(args["tradeId"], "invalid trade id"),
+            transaction_hash=Web3.to_hex(receipt["transactionHash"]),
+            block_number=_parse_dashboard_uint(
+                receipt["blockNumber"],
+                "invalid trade block number",
+            ),
+        )
+    except BlockchainClientError:
+        raise
+    except Exception as exc:
+        raise BlockchainClientError("failed to submit trade") from exc
+    finally:
+        await provider.disconnect()
+
+
+async def fetch_settlement_outcomes(from_block: int) -> list[RawSettlementOutcome]:
+    """读取指定区块之后的窗口结算结果，供交易查询时刷新状态。"""
+
+    if from_block < 0:
+        raise BlockchainClientError("invalid settlement event start block")
+
+    rpc_url = settings.blockchain_rpc_url.strip()
+    contract_address = settings.netting_contract_address.strip()
+    if not rpc_url or not contract_address:
+        raise BlockchainClientError("blockchain configuration is incomplete")
+
+    checksum_contract = _validate_transaction_address(contract_address, "netting contract")
+    provider = AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 10})
+    web3 = AsyncWeb3(provider)
+
+    try:
+        if not await web3.is_connected():
+            raise BlockchainClientError("blockchain rpc is unavailable")
+
+        contract_code = await web3.eth.get_code(checksum_contract)
+        if not contract_code:
+            raise BlockchainClientError("netting contract is not deployed")
+
+        contract = web3.eth.contract(address=checksum_contract, abi=NETTING_ABI)
+        succeeded_logs = await contract.events.SettlementSucceeded().get_logs(
+            from_block=from_block,
+            to_block="latest",
+        )
+        reverted_logs = await contract.events.SettlementReverted().get_logs(
+            from_block=from_block,
+            to_block="latest",
+        )
+    except BlockchainClientError:
+        raise
+    except Exception as exc:
+        raise BlockchainClientError("failed to read settlement events") from exc
+    finally:
+        await provider.disconnect()
+
+    outcomes = [
+        RawSettlementOutcome(
+            window_id=_parse_dashboard_uint(
+                log["args"]["windowId"],
+                "invalid settlement window id",
+            ),
+            succeeded=True,
+            transaction_hash=Web3.to_hex(log["transactionHash"]),
+            block_number=_parse_dashboard_uint(
+                log["blockNumber"],
+                "invalid settlement block number",
+            ),
+            reason=None,
+        )
+        for log in succeeded_logs
+    ]
+    outcomes.extend(
+        RawSettlementOutcome(
+            window_id=_parse_dashboard_uint(
+                log["args"]["windowId"],
+                "invalid settlement window id",
+            ),
+            succeeded=False,
+            transaction_hash=Web3.to_hex(log["transactionHash"]),
+            block_number=_parse_dashboard_uint(
+                log["blockNumber"],
+                "invalid settlement block number",
+            ),
+            reason=str(log["args"].get("reason") or "settlement reverted"),
+        )
+        for log in reverted_logs
+    )
+    return sorted(outcomes, key=lambda item: item.block_number)
