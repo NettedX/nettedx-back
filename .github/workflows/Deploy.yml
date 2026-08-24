@@ -73,7 +73,7 @@ jobs:
         target: "/opt/NettedX/nettedx-back"
 
     - name: Deploy to VPC
-      uses: appleboy/ssh-action@v1.2.0
+      uses: appleboy/ssh-action@v1.2.5
       with:
         host: ${{ secrets.VPC_HOST }}
         username: ${{ secrets.VPC_USERNAME }}
